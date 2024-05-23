@@ -9,23 +9,29 @@ class Board:
     def __init__(self, x: int, y: int) -> None:
         self.x = x
         self.y = y
+        self._char = "#"
+        self.over = False
 
         self.cache: list[list[str]]
 
     def clear(self):
         self.cache = []
 
-        char = "#"
-
-        self.cache.append([char] * (self.y + 2))
+        self.cache.append([self._char] * (self.y + 2))
 
         for _ in range(self.x):
-            self.cache.append([char] + self.y * [" "] + [char])
+            self.cache.append([self._char] + self.y * [" "] + [self._char])
 
-        self.cache.append([char] * (self.y + 2))
+        self.cache.append([self._char] * (self.y + 2))
 
     def set_char(self, x, y, char):
-        self.cache[x + 1][y + 1] = char
+        if not self.over:
+            self.cache[x + 1][y + 1] = char
+        else:
+            length = len("G;a;m;e; ;O;v;e;r;!;!".split(';'))
+            text = "G;a;m;e; ;O;v;e;r;!;!".split(';')
+            for i in range(length):
+                self.cache[math.floor(self.x/2+1)-math.floor(length/2)+i][math.floor(self.y/2)] = text[i]
 
     def __repr__(self) -> str:
         napis = ""
@@ -38,6 +44,10 @@ class Board:
             napis += row_napis + "\n"
 
         return napis
+    def game_over(self):
+        self._char = ' '
+        self.over = True
+        
 
 
 class Paddle:
@@ -55,12 +65,14 @@ class Paddle:
             self.posX -= self.speedX
 
     def changePosRight(self):
-        if self.posX + 1 <= self.map.x - 1:
+        if self.posX + 1 < self.map.x - 1:
             self.posX += self.speedX
 
     def update(self):
-        keyboard.on_press_key("A", self.changePosLeft)
-        keyboard.on_press_key("D", self.changePosRight)
+        if keyboard.is_pressed("a"):
+            self.changePosLeft()
+        if keyboard.is_pressed("d"):
+            self.changePosRight()
         self.map.set_char(self.posX, self.map.y - 1, self.char)
         self.map.set_char(self.posX + 1, self.map.y - 1, self.char)
         self.map.set_char(self.posX - 1, self.map.y - 1, self.char)
@@ -82,10 +94,17 @@ class Ball:
         self.draw_on(map)
         if self.posX == 0 or self.posX == map.x - 1:
             self.speedX = -self.speedX
-        if self.posY == 0 or self.posY == map.y - 1:
+        if self.posY == 0:
             self.speedY = -self.speedY
-        if self.posY == map.y - 2 and self.p.posX - 1 <= self.posX <= self.p.posX + 1:
+        elif self.posY >= map.y - 2 and self.p.posX - 1 <= self.posX <= self.p.posX + 1:
             self.speedY = -self.speedY
+        elif self.posY >= map.y - 2 and (
+            self.posX + 1 == self.p.posX - 1 or self.posX - 1 == self.p.posX + 1
+        ):
+            self.speedX = -self.speedX
+            self.speedY = -self.speedY
+        if self.posY == map.y-1:
+            map.game_over()
         self.posX -= self.speedX
         self.posY -= self.speedY
 
@@ -107,4 +126,4 @@ while True:
     p.update()
     print(m)
 
-    time.sleep(0.5)
+    time.sleep(0.1)
